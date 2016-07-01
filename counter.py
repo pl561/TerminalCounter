@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 # -*-coding:utf-8 -*
 
-import sys, time
+import sys
+from time import sleep
 from termcolor import colored
-import unittest2 as unittest
 
 class Counter(object):
     """print a progressing counter without spamming the screen"""
@@ -76,14 +76,13 @@ def do():
     for i in xrange(end):
         s += i
         c.next()
-        time.sleep(0.01)
+        sleep(0.01)
     print s
 
 def main():
     do()
 
 if __name__ == '__main__':
-    #sys.exit(unittest.main())
     sys.exit(main())
 
 
