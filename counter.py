@@ -2,7 +2,8 @@
 # -*-coding:utf-8 -*
 
 import sys
-from time import sleep
+import time
+import os
 from termcolor import colored
 
 class Counter(object):
@@ -21,7 +22,7 @@ class Counter(object):
         self.end = end
         self.step = step
         self.pipe = pipe
-        self.mystring = "{}:".format(self.header) + "[{} / {}] ({}%)"
+        self.mystring = "{}:".format(self.header) + "[{} / {}] ({}%)".ljust(10)
         self.color = "yellow"
 
     def setColor(self, color):
@@ -64,20 +65,101 @@ class Counter(object):
         return 0
 
 
+class Counters(object):
+    """displays a line of integer counters with percentage display"""
+    def __init__(self, headers, ranges, pipe=sys.stdout):
+        self.headers = headers
+        self.ranges = []
+        self.cursors = []
+        for rg in ranges:
+            if len(rg) == 2:
+                s, e = rg
+                self.ranges.append((s, e, 1))
+            elif len(rg) == 3:
+                self.ranges.append(rg)
+            else:
+                raise ValueError('Expected tuple (start, end, step)')
+            self.cursors.append(rg[0])
+
+        self.pipe = pipe
+        self.display_format = "{}:[{} / {}] ({}%)"
+        self.color = "yellow"
+        self.terminal_cursor = True
+        self.toggle_cursor()
+
+    def next(self, counterno):
+        """moves forward the counterno-th cursor"""
+        nb_counters = len(self.ranges)
+        counter_data_iterator = zip(range(nb_counters),
+                                    self.headers, self.ranges, self.cursors)
+        display_formats = []
+        for index, header, bounds, cursor in counter_data_iterator:
+            start, end, step = bounds
+            str_end = str(end)
+            len_fill = len(str_end)
+            str_cursor = str(cursor)
+            str_cursor = str_cursor.zfill(len_fill)
+            percentage = round(float(cursor)/end * 100, 2)
+            display_format = self.display_format.format(header,
+                                                        str_cursor, str_end,
+                                                        percentage)
+            display_formats.append(display_format)
+            if cursor == end and index != 0:
+                self.cursors[index] = start
+
+            if index == counterno:
+                self.cursors[index] += step
+
+        self.pipe.write(colored(", ".join(display_formats)+'\r', self.color))
+        self.pipe.flush()
 
 
+    def toggle_cursor(self):
+        """displays or hides the terminal cursor"""
+        if self.terminal_cursor:
+            os.system('setterm -cursor off')
+        else:
+            os.system('setterm -cursor on')
+        # toggle
+        self.terminal_cursor = not self.terminal_cursor
 
 
-def do():
-    end = 500
-    c = Counter(header="QIM", end=end)
-    # c.toggle()
+    def finish(self):
+        self.pipe.write("\n")
+        self.pipe.flush()
+        self.toggle_cursor()
+
+
+def test_counter():
+    end = 25
+    c = Counter(header="Deadline dans (en s)", end=end)
     s = 0
     for i in xrange(end):
         s += i
         c.next()
-        sleep(0.01)
+        time.sleep(60.)
     print s
+
+def test_counters():
+    headers = ['hd1', 'hd2', 'hd3']
+    ranges = [(1, 10), (10, 20), (30, 40)]
+
+    ctrs = Counters(headers, ranges)
+
+    for i in range(10):
+        for j in range(10, 20):
+            for k in range(30, 40):
+                ctrs.next(2)
+                time.sleep(0.01)
+            ctrs.next(1)
+        ctrs.next(0)
+    ctrs.finish()
+
+def do():
+    try:
+        test_counters()
+    finally:
+        os.system('setterm -cursor on')
 
 def main():
     do()
