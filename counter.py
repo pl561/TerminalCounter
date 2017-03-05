@@ -99,7 +99,7 @@ class Counters(object):
             len_fill = len(str_end)
             str_cursor = str(cursor)
             str_cursor = str_cursor.zfill(len_fill)
-            percentage = round(float(cursor)/end * 100, 2)
+            percentage = round(float(cursor-start+1)/(end-start+1)*100, 2)
             display_format = self.display_format.format(header,
                                                         str_cursor, str_end,
                                                         percentage)
